@@ -8,7 +8,7 @@ require('dotenv').config();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE) || 512;
 const CHUNK_OVERLAP = parseInt(process.env.CHUNK_OVERLAP) || 64;
-const DOCUMENTS_PATH = './documents';
+const DOCUMENTS_PATH = process.env.DOCUMENTS_PATH || './documents';
 
 /**
  * Split text into chunks with overlap

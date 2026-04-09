@@ -14,7 +14,11 @@ services:
         sync: false
       - key: PORT
         value: 3000
+      - key: DOCUMENTS_PATH
+        value: /opt/render/project/data/documents
+      - key: VECTOR_STORE_PATH
+        value: /opt/render/project/data/vector_store.json
     disk:
       name: sox-rag-data
-      mountPath: /opt/render/project/src
+      mountPath: /opt/render/project/data
       sizeGB: 1

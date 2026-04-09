@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const STORE_PATH = './vector_store.json';
+const STORE_PATH = process.env.VECTOR_STORE_PATH || './vector_store.json';
 
 /**
  * Simple file-based vector store

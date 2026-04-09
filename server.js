@@ -11,14 +11,23 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const DOCUMENTS_PATH = process.env.DOCUMENTS_PATH || path.join(__dirname, 'documents');
+const VECTOR_STORE_DIR = path.dirname(process.env.VECTOR_STORE_PATH || path.join(__dirname, 'vector_store.json'));
+
+// Ensure directories exist on startup
+async function ensureDirectories() {
+  await fs.mkdir(DOCUMENTS_PATH, { recursive: true });
+  await fs.mkdir(VECTOR_STORE_DIR, { recursive: true });
+}
+
+ensureDirectories().catch(console.error);
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadsDir = path.join(__dirname, 'documents');
     try {
-      await fs.mkdir(uploadsDir, { recursive: true });
-      cb(null, uploadsDir);
+      await fs.mkdir(DOCUMENTS_PATH, { recursive: true });
+      cb(null, DOCUMENTS_PATH);
     } catch (error) {
       cb(error);
     }
