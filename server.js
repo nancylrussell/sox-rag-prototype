@@ -1,11 +1,47 @@
 const express = require('express');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs').promises;
 const { generateAnswer, healthCheck } = require('./rag');
 const { getIndexedDocuments } = require('./retrieval');
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadsDir = path.join(__dirname, 'documents');
+    try {
+      await fs.mkdir(uploadsDir, { recursive: true });
+      cb(null, uploadsDir);
+    } catch (error) {
+      cb(error);
+    }
+  },
+  filename: (req, file, cb) => {
+    // Keep original filename
+    cb(null, file.originalname);
+  }
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
 // Middleware
 app.use(express.json());
@@ -149,6 +185,46 @@ app.post('/api/feedback', (req, res) => {
   // In a production system, you'd store this in a database
   // For now, just log it
   res.json({ success: true });
+});
+
+/**
+ * Upload and index new document
+ */
+app.post('/api/upload', upload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const filename = req.file.filename;
+    console.log(`Document uploaded: ${filename}`);
+
+    // Run ingestion for the new document
+    console.log('Starting ingestion...');
+    const { stdout, stderr } = await execPromise('node ingest.js');
+
+    if (stderr && !stderr.includes('dotenv')) {
+      console.error('Ingestion stderr:', stderr);
+    }
+    console.log('Ingestion complete');
+
+    res.json({
+      success: true,
+      message: 'Document uploaded and indexed successfully',
+      filename: filename
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing uploaded document',
+      error: error.message
+    });
+  }
 });
 
 /**

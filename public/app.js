@@ -266,3 +266,56 @@ async function submitFeedback(feedback) {
     console.error('Error submitting feedback:', error);
   }
 }
+
+// Handle file selection and upload
+async function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate file type
+  if (file.type !== 'application/pdf') {
+    alert('Please select a PDF file');
+    return;
+  }
+
+  // Validate file size (10MB limit)
+  if (file.size > 10 * 1024 * 1024) {
+    alert('File size must be less than 10MB');
+    return;
+  }
+
+  const uploadStatus = document.getElementById('uploadStatus');
+  uploadStatus.classList.remove('hidden');
+  uploadStatus.innerHTML = '<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading and indexing...</span>';
+
+  try {
+    const formData = new FormData();
+    formData.append('document', file);
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      uploadStatus.innerHTML = '<span class="text-green-600"><i class="fas fa-check mr-1"></i>Document uploaded successfully!</span>';
+
+      // Reload document list
+      setTimeout(() => {
+        loadDocuments();
+        uploadStatus.classList.add('hidden');
+      }, 2000);
+    } else {
+      throw new Error(data.message || 'Upload failed');
+    }
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    uploadStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-times mr-1"></i>Upload failed: ' + error.message + '</span>';
+  }
+
+  // Clear file input
+  event.target.value = '';
+}
